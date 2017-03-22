@@ -40,6 +40,16 @@ def retrieve_date_from_file(file_name):
     file_date = datetime.datetime(int(year), int(month), int(day))
     return file_date
 
+
+def create_backup_name_from_date(date):
+    """ Create the name of a backup from a date.
+    2017-03-02 => backup_2017_03_02"""
+    backup_name = ('backup_{year}_{month}_{day}'
+                   .format(year=date.year, month=format(date.month, '02'),
+                           day=format(date.day, '02')))
+    return backup_name
+
+
 # Load of the config
 with open('config.json') as my_json:
     config = json.load(my_json)
@@ -53,9 +63,7 @@ if to_delete:
 
 # The backups are named with the date
 now = datetime.datetime.now()
-backup_name = ('backup_{year}_{month}_{day}'
-               .format(year=now.year, month=format(now.month, '02'),
-                       day=format(now.day, '02')))
+backup_name = create_backup_name_from_date(now)
 
 # Initialization of the connection
 ssh = SSHClient()
@@ -80,7 +88,7 @@ if len(backups) == 0:
     create_backup_archive(backup_name, config)
     scp.put(backup_name + '.tar.gz', config['dir_dest'])
     scp.close()
-    remove_backup_archive(now)
+    remove_backup_archive(backup_name)
 
 elif len(backups) in range(1, 5):
     newer_file_date = retrieve_date_from_file(backups[-1])
@@ -90,12 +98,16 @@ elif len(backups) in range(1, 5):
         create_backup_archive(backup_name, config)
         scp.put(backup_name + '.tar.gz', config['dir_dest'])
         scp.close()
-        remove_backup_archive(now)
+        remove_backup_archive(backup_name)
 
         # Remove of the old backups
         if len(backups) == 4:
             older_file_date = retrieve_date_from_file(backups[0])
             second_older_file_date = retrieve_date_from_file(backups[1])
+            older_file = (create_backup_name_from_date(older_file_date) +
+                          ".tar.gz")
+            second_older_file = create_backup_name_from_date(
+                    second_older_file_date) + ".tar.gz"
 
             # We always keep an old backup (30 days before the second oldest by
             # default)

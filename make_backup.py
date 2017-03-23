@@ -69,7 +69,8 @@ backup_name = create_backup_name_from_date(now)
 ssh = SSHClient()
 ssh.set_missing_host_key_policy(AutoAddPolicy())
 ssh.connect(config['host'], username=config['user'],
-            password=config['password'], key_filename=config['key_filename'])
+            password=config['password'], key_filename=config['key_filename'],
+            timeout=300)
 
 # If there is a backup to delete, we do it before searching the other backups
 # (because as she is corrupt, we have to replace it)
@@ -84,7 +85,7 @@ backups = [line.replace('\n', '') for line in stdout.readlines()]
 
 if len(backups) == 0:
     # If there is no backup, we put one
-    scp = SCPClient(ssh.get_transport())
+    scp = SCPClient(ssh.get_transport(), socket_timeout=500)
     create_backup_archive(backup_name, config)
     scp.put(backup_name + '.tar.gz', config['dir_dest'])
     scp.close()

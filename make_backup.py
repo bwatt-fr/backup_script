@@ -75,7 +75,9 @@ ssh.connect(config['host'], username=config['user'],
 # If there is a backup to delete, we do it before searching the other backups
 # (because as she is corrupt, we have to replace it)
 if to_delete:
-    command_rm_to_delete = 'rm Backup/' + to_delete[0]
+    command_rm_to_delete = 'rm {dir_dest}/{file}'.format(
+                                dir_dest=config['dir_dest'],
+                                file=to_delete[0])
     ssh.exec_command(command_rm_to_delete)
 
 # We search the number of backup

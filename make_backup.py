@@ -49,14 +49,16 @@ def create_backup_name_from_date(date):
                            day=format(date.day, '02')))
     return backup_name
 
+# Location of the python file
+dir_name = os.path.dirname(__file__)
 
 # Load of the config
-with open('config.json') as my_json:
+with open(dir_name + '/config.json') as my_json:
     config = json.load(my_json)
 
 # We test if the last backup is deleted. If not, the transfer was not good, and
 # we have to remove the backup on the backup server
-to_delete = glob.glob('*.tar.gz')
+to_delete = glob.glob(dir_name + '/*.tar.gz')
 if to_delete:
     os.remove(to_delete[0])
     shutil.rmtree(to_delete[0].split('.')[0])
@@ -77,7 +79,7 @@ ssh.connect(config['host'], username=config['user'],
 if to_delete:
     command_rm_to_delete = 'rm {dir_dest}/{file}'.format(
                                 dir_dest=config['dir_dest'],
-                                file=to_delete[0])
+                                file=to_delete[0].split('/')[-1])
     ssh.exec_command(command_rm_to_delete)
 
 # We search the number of backup
@@ -88,20 +90,20 @@ backups = [line.replace('\n', '') for line in stdout.readlines()]
 if len(backups) == 0:
     # If there is no backup, we put one
     scp = SCPClient(ssh.get_transport(), socket_timeout=500)
-    create_backup_archive(backup_name, config)
-    scp.put(backup_name + '.tar.gz', config['dir_dest'])
+    create_backup_archive(dir_name + '/' + backup_name, config)
+    scp.put(dir_name + '/' + backup_name + '.tar.gz', config['dir_dest'])
     scp.close()
-    remove_backup_archive(backup_name)
+    remove_backup_archive(dir_name + '/' + backup_name)
 
 elif len(backups) in range(1, 5):
     newer_file_date = retrieve_date_from_file(backups[-1])
     if (now - newer_file_date).days >= config['days_between_backup']:
         # Copy of the file
         scp = SCPClient(ssh.get_transport())
-        create_backup_archive(backup_name, config)
-        scp.put(backup_name + '.tar.gz', config['dir_dest'])
+        create_backup_archive(dir_name + '/' + backup_name, config)
+        scp.put(dir_name + '/' + backup_name + '.tar.gz', config['dir_dest'])
         scp.close()
-        remove_backup_archive(backup_name)
+        remove_backup_archive(dir_name + '/' + backup_name)
 
         # Remove of the old backups
         if len(backups) == 4:
